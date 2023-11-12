@@ -1,0 +1,42 @@
+services:
+  server:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      POSTGRES_HOST: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-password
+      POSTGRES_DB: example
+    ports:
+      - 5678:5678
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - db-password
+  db:
+    image: postgres
+    restart: always
+    user: postgres
+    secrets:
+      - db-password
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: example
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-password
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  db-data:
+secrets:
+  db-password:
+    file: db/password.txt
